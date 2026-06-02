@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SwiftSupport — AI-Powered Help Desk</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="logo-icon">⚡</span>
+      <span class="logo-text">SwiftSupport</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#" class="nav-link active" data-page="dashboard">Dashboard</a></li>
+      <li><a href="#" class="nav-link" data-page="tickets">My Tickets</a></li>
+      <li><a href="#" class="nav-link" data-page="new-ticket">New Ticket</a></li>
+    </ul>
+    <div class="nav-user">
+      <div class="user-avatar">JD</div>
+      <span class="user-name">Jane Doe</span>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- DASHBOARD PAGE -->
+    <section id="page-dashboard" class="page active">
+      <div class="page-header">
+        <h1>Welcome back, Jane</h1>
+        <p>Here's what's happening with your support tickets today.</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon open">📋</div>
+          <div class="stat-body">
+            <span class="stat-value">4</span>
+            <span class="stat-label">Open Tickets</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon progress">🔄</div>
+          <div class="stat-body">
+            <span class="stat-value">2</span>
+            <span class="stat-label">In Progress</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon resolved">✅</div>
+          <div class="stat-body">
+            <span class="stat-value">17</span>
+            <span class="stat-label">Resolved</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon ai">🤖</div>
+          <div class="stat-body">
+            <span class="stat-value">94%</span>
+            <span class="stat-label">AI Resolution Rate</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <h2>Recent Activity</h2>
+        <a href="#" class="link" data-page="tickets">View all →</a>
+      </div>
+
+      <div class="ticket-list" id="recent-tickets"></div>
+    </section>
+
+    <!-- TICKETS PAGE -->
+    <section id="page-tickets" class="page">
+      <div class="page-header">
+        <h1>My Tickets</h1>
+        <button class="btn btn-primary" data-page="new-ticket">+ New Ticket</button>
+      </div>
+
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="open">Open</button>
+        <button class="filter-btn" data-filter="in-progress">In Progress</button>
+        <button class="filter-btn" data-filter="resolved">Resolved</button>
+      </div>
+
+      <div class="ticket-list" id="all-tickets"></div>
+    </section>
+
+    <!-- NEW TICKET PAGE -->
+    <section id="page-new-ticket" class="page">
+      <div class="page-header">
+        <h1>Submit a Ticket</h1>
+        <p>Describe your issue and our AI will route it to the right team.</p>
+      </div>
+
+      <div class="form-card">
+        <form id="ticket-form">
+          <div class="form-group">
+            <label for="ticket-title">Subject <span class="required">*</span></label>
+            <input type="text" id="ticket-title" placeholder="Brief description of your issue" required />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ticket-category">Category <span class="required">*</span></label>
+              <select id="ticket-category" required>
+                <option value="" disabled selected>Select a category</option>
+                <option value="billing">Billing</option>
+                <option value="technical">Technical Issue</option>
+                <option value="account">Account Management</option>
+                <option value="feature">Feature Request</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ticket-priority">Priority <span class="required">*</span></label>
+              <select id="ticket-priority" required>
+                <option value="" disabled selected>Select priority</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="ticket-description">Description <span class="required">*</span></label>
+            <textarea id="ticket-description" rows="6" placeholder="Provide as much detail as possible…" required></textarea>
+          </div>
+
+          <div class="ai-notice">
+            <span class="ai-badge">🤖 AI</span>
+            Your ticket will be analyzed by our AI to suggest solutions before routing to an agent.
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" data-page="tickets">Cancel</button>
+            <button type="submit" class="btn btn-primary">Submit Ticket</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- TICKET DETAIL MODAL -->
+    <div id="ticket-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <button class="modal-close" id="modal-close">✕</button>
+        <div id="modal-content"></div>
+      </div>
+    </div>
+
+    <!-- SUCCESS TOAST -->
+    <div id="toast" class="toast hidden">
+      <span id="toast-message"></span>
+    </div>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+Client Background:
+
+You are a Cloud Engineer Consultant working with SwiftSupport, a growing tech startup that has developed an AI-powered ticket handling system.
+
+They've successfully deployed their solution on AWS, but their initial focus was on functionality rather than security best practices. 
+
+The system is now handling customer support tickets for several clients, making security a priority. Currently, the team of 12 employees shares AWS credentials, and there's minimal access control in place.
+
+Current Setup:
+
+Shared AWS credentials across the team
+
+No proper IAM structure or role-based access
+
+Minimal security configurations for services
+
+No standardized deployment process
+
+Current Infrastructure:
+
+Single Page Application hosted via CloudFront and S3
+
+WAF for security protection
+
+API Gateway for request handling
+
+Multiple Lambda functions for different operations
+
+DynamoDB for ticket storage
+
+Bedrock for AI processing
+
+CloudWatch for monitoring
+
+Team Structure & Access Needs:
+
+5 Developers (need Lambda, API Gateway, and DynamoDB access)
+
+2 DevOps Engineers (need full infrastructure access)
+
+1 Security Specialist (needs WAF, IAM, and CloudWatch access)
+
+2 Data Scientists (need Bedrock and read-only DynamoDB access)
+
+2 Product Managers (need read-only access to monitoring and cost data)
+
+--------- Your Task ---------
+
+1 - Document the Current Architecture
+
+Create a detailed architectural diagram documenting the current setup
+
+Identify security gaps in the current implementation
+
+2 - Secure AWS Account Access
+
+Implement AWS Organizations
+
+Secure the root account
+
+Establish credential management best practices
+
+3 - Implement IAM Best Practices
+
+Create appropriate IAM users, groups, and roles
+
+Developer group & users
+
+DevOps group & users
+
+Security group & user
+
+Data Science group & users
+
+Product Management group & users
+
+4 - Enhance Service Security
+
+Implement proper security for each service in the architecture:
+
+Lambda function permissions
+
+API Gateway authorization
+
+DynamoDB access controls
+
+WAF rule optimization
+
+CloudFront security settings
+
+5 - Implement These Permissions
+
+Developers:
+
+Lambda function development and deployment
+
+API Gateway configuration
+
+Limited DynamoDB table access
+
+CloudWatch logs viewing
+
+DevOps:
+
+Full infrastructure management
+
+CI/CD pipeline access
+
+CloudWatch full access
+
+Resource provisioning capabilities
+
+Security Specialist:
+
+WAF configuration
+
+IAM administration
+
+CloudWatch Logs and Alarms
+
+Security audit capabilities
+
+Data Scientists:
+
+Full Bedrock access
+
+Read-only DynamoDB access
+
+Lambda function access for AI components
+
+Product Managers:
+
+CloudWatch dashboard access
+
+Cost Explorer and Budgets
+
+Read-only resource visibility
+
+--------- What to Submit ---------
+
+Documentation and Screenshots
+
+Comprehensive documentation explaining:
+
+The current architecture and its security vulnerabilities
+
+Your implementation approach and security improvements
+
+Reasoning behind permission structures
+
+In the documentation include screenshots showing:
+
+IAM groups, users, and roles structure
+
+Security configurations for key services (WAF, API Gateway, Lambda)
+
+Permission boundaries and policies for each team
+
+CloudWatch monitoring and alerting setup
+
+How service-to-service authentication is secured

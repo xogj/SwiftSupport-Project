@@ -20,18 +20,21 @@
       <li><a href="#" class="nav-link" data-page="new-ticket">New Ticket</a></li>
     </ul>
     <div class="nav-user">
-      <div class="user-avatar">JD</div>
-      <span class="user-name">Jane Doe</span>
+      <span id="mode-badge" class="mode-badge hidden">Mock mode</span>
+      <button id="sign-in-btn" class="btn btn-ghost hidden">Sign in</button>
+      <button id="sign-out-btn" class="btn btn-ghost hidden">Sign out</button>
+      <div id="user-avatar" class="user-avatar">JD</div>
+      <span id="user-name" class="user-name">Jane Doe</span>
     </div>
   </nav>
 
   <!-- MAIN -->
   <main class="main">
 
-    <!-- DASHBOARD PAGE -->
+    <!-- DASHBOARD -->
     <section id="page-dashboard" class="page active">
       <div class="page-header">
-        <h1>Welcome back, Jane</h1>
+        <h1>Welcome back</h1>
         <p>Here's what's happening with your support tickets today.</p>
       </div>
 
@@ -39,21 +42,21 @@
         <div class="stat-card">
           <div class="stat-icon open">📋</div>
           <div class="stat-body">
-            <span class="stat-value">4</span>
+            <span class="stat-value" id="stat-open">0</span>
             <span class="stat-label">Open Tickets</span>
           </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon progress">🔄</div>
           <div class="stat-body">
-            <span class="stat-value">2</span>
+            <span class="stat-value" id="stat-progress">0</span>
             <span class="stat-label">In Progress</span>
           </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon resolved">✅</div>
           <div class="stat-body">
-            <span class="stat-value">17</span>
+            <span class="stat-value" id="stat-resolved">0</span>
             <span class="stat-label">Resolved</span>
           </div>
         </div>
@@ -74,7 +77,7 @@
       <div class="ticket-list" id="recent-tickets"></div>
     </section>
 
-    <!-- TICKETS PAGE -->
+    <!-- TICKETS -->
     <section id="page-tickets" class="page">
       <div class="page-header">
         <h1>My Tickets</h1>
@@ -91,7 +94,7 @@
       <div class="ticket-list" id="all-tickets"></div>
     </section>
 
-    <!-- NEW TICKET PAGE -->
+    <!-- NEW TICKET -->
     <section id="page-new-ticket" class="page">
       <div class="page-header">
         <h1>Submit a Ticket</h1>
@@ -155,13 +158,17 @@
       </div>
     </div>
 
-    <!-- SUCCESS TOAST -->
+    <!-- TOAST -->
     <div id="toast" class="toast hidden">
       <span id="toast-message"></span>
     </div>
 
   </main>
 
+  <!-- Config injected by CDK at deploy time; local default keeps SPA in mock mode -->
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+  <script src="api.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

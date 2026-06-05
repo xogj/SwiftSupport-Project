@@ -1,59 +1,106 @@
-// ** Has Access to Lambda, API Gateway, and DynamoDB ** 
+// Developers: Lambda, API Gateway, scoped DynamoDB, CloudWatch logs read
 
 import * as cdk from 'aws-cdk-lib'
 import { Construct } from 'constructs'
-import * as ec2 from 'aws-cdk-lib/aws-ec2'
 import * as iam from 'aws-cdk-lib/aws-iam'
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
+import { buildMfaEnforcementPolicy, humanAssumablePrincipal, grantGroupAssumeRole } from './shared'
+
+export interface DeveloperStackProps extends cdk.StackProps {
+    ticketTable: dynamodb.ITableV2;
+}
 
 export class DeveloperStack extends cdk.Stack {
-    constructor(scope: Construct, id: string, vpc: ec2.IVpc, props?: cdk.StackProps) {
+    constructor(scope: Construct, id: string, props: DeveloperStackProps) {
         super(scope, id, props);
 
-        const mfaPolicy = new iam.Policy(this, 'MfaEnforcement', {
-            statements: [
-                new iam.PolicyStatement({
-                    effect: iam.Effect.DENY,
-                    actions: ['*'],
-                    resources: ['*'],
-                    conditions: {
-                        BoolIfExists: {
-                            'aws:MultiFactorAuthPresent': 'false'
-                        }
-                    }
-                })
-            ]
+        const mfaPolicy = buildMfaEnforcementPolicy(this, 'MfaEnforcement');
+
+        const developerGroup = new iam.Group(this, 'DeveloperGroup', {
+            groupName: 'SwiftSupport-Developers'
+        });
+        developerGroup.attachInlinePolicy(mfaPolicy);
+
+        for (const name of ['Alice', 'Bob', 'Charlie', 'Diana', 'Eric']) {
+            developerGroup.addUser(new iam.User(this, name));
+        }
+
+        const developerRole = new iam.Role(this, 'DeveloperRole', {
+            roleName: 'SwiftSupport-Developer',
+            assumedBy: humanAssumablePrincipal(this.account),
+            description: 'Lambda + API Gateway dev + scoped Dynamo + CW logs',
+            maxSessionDuration: cdk.Duration.hours(4)
         });
 
-        const developerGroup = new iam.Group(this, 'DeveloperGroup');
+        // Lambda: deploy/update SwiftSupport functions only
+        developerRole.addToPolicy(new iam.PolicyStatement({
+            sid: 'LambdaDev',
+            effect: iam.Effect.ALLOW,
+            actions: [
+                'lambda:GetFunction',
+                'lambda:ListFunctions',
+                'lambda:CreateFunction',
+                'lambda:UpdateFunctionCode',
+                'lambda:UpdateFunctionConfiguration',
+                'lambda:PublishVersion',
+                'lambda:InvokeFunction',
+                'lambda:TagResource',
+                'lambda:GetFunctionConfiguration'
+            ],
+            resources: [`arn:aws:lambda:${this.region}:${this.account}:function:SwiftSupport-*`]
+        }));
 
-        const alice = new iam.User(this, 'Alice');
-        const bob = new iam.User(this, 'Bob');
-        const charlie = new iam.User(this, 'Charlie');
-        const diana = new iam.User(this, 'Diana');
-        const eric = new iam.User(this, 'Eric');
+        // API Gateway: configuration on REST APIs (resource-level scoping is limited
+        // for apigateway, so account-wide is the practical floor here)
+        developerRole.addToPolicy(new iam.PolicyStatement({
+            sid: 'ApiGatewayDev',
+            effect: iam.Effect.ALLOW,
+            actions: [
+                'apigateway:GET',
+                'apigateway:POST',
+                'apigateway:PUT',
+                'apigateway:PATCH',
+                'apigateway:DELETE'
+            ],
+            resources: [`arn:aws:apigateway:${this.region}::/restapis/*`]
+        }));
 
-        developerGroup.addUser(alice);
-        developerGroup.addUser(bob);
-        developerGroup.addUser(charlie);
-        developerGroup.addUser(diana);
-        developerGroup.addUser(eric);
+        // DynamoDB: limited — read + write items only on the ticket table,
+        // no schema changes, no destructive table operations
+        developerRole.addToPolicy(new iam.PolicyStatement({
+            sid: 'DynamoLimited',
+            effect: iam.Effect.ALLOW,
+            actions: [
+                'dynamodb:GetItem',
+                'dynamodb:BatchGetItem',
+                'dynamodb:Query',
+                'dynamodb:Scan',
+                'dynamodb:PutItem',
+                'dynamodb:UpdateItem',
+                'dynamodb:DeleteItem',
+                'dynamodb:DescribeTable'
+            ],
+            resources: [props.ticketTable.tableArn, `${props.ticketTable.tableArn}/index/*`]
+        }));
 
-        const myRole = new iam.Role(this, 'DeveloperRole', {
-            assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com')
-        });
+        // CloudWatch logs viewing (spec requirement)
+        developerRole.addToPolicy(new iam.PolicyStatement({
+            sid: 'CloudWatchLogsRead',
+            effect: iam.Effect.ALLOW,
+            actions: [
+                'logs:DescribeLogGroups',
+                'logs:DescribeLogStreams',
+                'logs:GetLogEvents',
+                'logs:FilterLogEvents',
+                'logs:StartQuery',
+                'logs:GetQueryResults',
+                'logs:StopQuery',
+                'cloudwatch:GetMetricData',
+                'cloudwatch:ListMetrics'
+            ],
+            resources: ['*']
+        }));
 
-        myRole.addToPrincipalPolicy(
-            new iam.PolicyStatement({
-                effect: iam.Effect.ALLOW,
-                actions: [
-                    'lambda:*',
-                    'apigateway:*',
-                    'dynamodb:*'
-                ],
-                resources: ['*']
-            })
-        );
-
-        myRole.attachInlinePolicy(mfaPolicy);
+        grantGroupAssumeRole(developerGroup, developerRole, 'AssumeDeveloperRole');
     }
 }

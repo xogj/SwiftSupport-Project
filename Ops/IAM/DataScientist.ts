@@ -1,68 +1,68 @@
-// Has Access to Bedrock and read-only DynamoDB access** 
+// Data Scientists: Bedrock access + read-only DynamoDB
 
 import * as cdk from 'aws-cdk-lib'
 import { Construct } from 'constructs'
-import * as ec2 from 'aws-cdk-lib/aws-ec2'
 import * as iam from 'aws-cdk-lib/aws-iam'
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
+import { buildMfaEnforcementPolicy, humanAssumablePrincipal, grantGroupAssumeRole } from './shared'
+
+export interface DataScientistStackProps extends cdk.StackProps {
+    ticketTable: dynamodb.ITableV2;
+    bedrockInvokePolicy: iam.IManagedPolicy;
+}
 
 export class DataScientistStack extends cdk.Stack {
-    constructor(scope: Construct, id: string, vpc: ec2.IVpc, props?: cdk.StackProps) {
+    constructor(scope: Construct, id: string, props: DataScientistStackProps) {
         super(scope, id, props);
 
+        const mfaPolicy = buildMfaEnforcementPolicy(this, 'MfaEnforcement');
 
-        const mfaPolicy = new iam.Policy(this, 'MfaEnforcement', {
-            statements: [
-                new iam.PolicyStatement({
-                    effect: iam.Effect.DENY,
-                    actions: ['*'],
-                    resources: ['*'],
-                    conditions: {
-                        BoolIfExists: {
-                            'aws:MultiFactorAuthPresent': 'false'
-                        }
-                    }
-                })
-            ]
+        const dataScientistGroup = new iam.Group(this, 'DataScientistGroup', {
+            groupName: 'SwiftSupport-DataScientists'
+        });
+        dataScientistGroup.attachInlinePolicy(mfaPolicy);
+
+        const alice = new iam.User(this, 'Irene');
+        const james = new iam.User(this, 'James');
+        dataScientistGroup.addUser(alice);
+        dataScientistGroup.addUser(james);
+
+        const dataScientistRole = new iam.Role(this, 'DataScientistRole', {
+            roleName: 'SwiftSupport-DataScientist',
+            assumedBy: humanAssumablePrincipal(this.account),
+            description: 'Bedrock + read-only ticket data access',
+            maxSessionDuration: cdk.Duration.hours(4)
         });
 
-        const DataScientist = new iam.Group(this, 'DataScientistGroup');
+        // Bedrock invocation, scoped to the SwiftSupport model
+        dataScientistRole.addManagedPolicy(props.bedrockInvokePolicy);
 
-        const alice = new iam.User(this, 'Irene')
-        const james = new iam.User(this, 'James')
+        // Read-only DynamoDB on the ticket table
+        dataScientistRole.addToPolicy(new iam.PolicyStatement({
+            sid: 'ReadOnlyTickets',
+            effect: iam.Effect.ALLOW,
+            actions: [
+                'dynamodb:GetItem',
+                'dynamodb:BatchGetItem',
+                'dynamodb:Query',
+                'dynamodb:Scan',
+                'dynamodb:DescribeTable'
+            ],
+            resources: [props.ticketTable.tableArn, `${props.ticketTable.tableArn}/index/*`]
+        }));
 
-        DataScientist.addUser(Irene);
-        DataScientist.addUser(James);
+        // Lambda read access — they can view AI Lambdas but not modify them
+        dataScientistRole.addToPolicy(new iam.PolicyStatement({
+            sid: 'ReadAiLambdas',
+            effect: iam.Effect.ALLOW,
+            actions: [
+                'lambda:GetFunction',
+                'lambda:ListFunctions',
+                'lambda:InvokeFunction'
+            ],
+            resources: [`arn:aws:lambda:${this.region}:${this.account}:function:SwiftSupport-*`]
+        }));
 
-
-        const myRole = new iam.Role(this, 'DataScientist', {
-            assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com')
-
-        });
-
-        myRole.addToPrincipalPolicy(
-            new iam.PolicyStatement({
-                effect: iam.Effect.ALLOW,
-                actions: [
-                    'bedrock:InvokeModel',
-                    'bedrock:Retrieve',
-                    'bedrock:RetrieveAndGenerate'
-                ],
-                resources: ['*']
-            })
-            
-            myRole.addToPrinciplePolicy(
-                new iam.Policystatement({
-                    effect: iam.Effect.ALLOW,
-                    actions: [
-                        'dynamodb:readonly'
-
-                    ]
-                    resources: [dynamodb.Table.fromTableName(this, 'DynamodbSwiftSuppot')]
-                })
-            )
-        );
+        grantGroupAssumeRole(dataScientistGroup, dataScientistRole, 'AssumeDataScientistRole');
     }
-
-}
 }

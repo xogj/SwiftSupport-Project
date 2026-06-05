@@ -4,14 +4,22 @@ import * as codebuild from 'aws-cdk-lib/aws-codebuild'
 import { Construct } from 'constructs'
 import * as iam from 'aws-cdk-lib/aws-iam'
 
+export interface SwiftSupportAISecurityPipelineProps extends cdk.StackProps {
+    repoString: string;        // 'owner/repo'
+    branch: string;            // e.g. 'main'
+    codeStarConnectionArn: string; // arn:aws:codeconnections:...
+}
+
 export class SwiftSupportAISecurityPipelineStack extends cdk.Stack {
-    constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+    constructor(scope: Construct, id: string, props: SwiftSupportAISecurityPipelineProps) {
         super(scope, id, props)
 
         const pipeline = new pipelines.CodePipeline(this, 'SwiftSupportPipeline', {
+            pipelineName: 'SwiftSupport-AI-Security',
+            crossAccountKeys: false,
             synth: new pipelines.ShellStep('Synth', {
-                input: pipelines.CodePipelineSource.connection('SwiftSupport/repo', 'main', {
-                    connectionArn: 'arn:aws:codestar-connections:region:account-id:connection/connection-id'
+                input: pipelines.CodePipelineSource.connection(props.repoString, props.branch, {
+                    connectionArn: props.codeStarConnectionArn
                 }),
                 commands: ['npm ci', 'npm run build', 'npx cdk synth']
             })
@@ -24,28 +32,41 @@ export class SwiftSupportAISecurityPipelineStack extends cdk.Stack {
 class SwiftSupportAISecurityTestingStage extends cdk.Stage {
     constructor(scope: Construct, id: string, props?: cdk.StageProps) {
         super(scope, id, props)
+        new SwiftSupportAITestStack(this, 'AITestRunner')
+    }
+}
+
+class SwiftSupportAITestStack extends cdk.Stack {
+    constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+        super(scope, id, props)
 
         const testProject = new codebuild.Project(this, 'AISecurityTest', {
             projectName: 'ai-security-eval',
             buildSpec: codebuild.BuildSpec.fromObject({
                 version: '0.2',
                 phases: {
-                    install: {
-                        commands: ['npm ci']
-                    },
-                    build: {
-                        commands: ['npx ts-node run-security-test.ts']
+                    install: { commands: ['npm ci'] },
+                    build: { commands: ['npx ts-node Security/run-security-test.ts'] }
+                },
+                reports: {
+                    'ai-security-eval': {
+                        files: ['security-report.json'],
+                        'file-format': 'CUCUMBERJSON'
                     }
                 }
             }),
             environment: {
-                buildImage: codebuild.LinuxBuildImage.STANDARD_7_0
+                buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
+                privileged: false
             }
         })
 
+        // Test runner needs to call Bedrock for the prompt-injection eval suite
         testProject.addToRolePolicy(new iam.PolicyStatement({
             actions: ['bedrock:InvokeModel'],
-            resources: ['*']
+            resources: [
+                `arn:aws:bedrock:${this.region}::foundation-model/anthropic.claude-3-5-sonnet-*`
+            ]
         }))
     }
 }
